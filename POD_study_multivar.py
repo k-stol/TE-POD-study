@@ -18,14 +18,14 @@ DATA_DIR = "./data/"
 # Mode 0 is the mean, so we should not include it in the analysis.
 # For this script, we assume 1-indexed modes from tmcoeff 
 # (as in, tmcoeff[:, 0] is the mean mode, so we start from 1).
-NUM_POD = 20
+NUM_POD = 4
 
 # MTE parameters
 MIN_LAG_S = 1   # Minimum lag for the source variable
-MAX_LAG_S = 50  # Maximum lag for the source variable
-MAX_LAG_T = 50  # Maximum lag for the target variable
-N_PERM = 100    # Number of permutations for significance testing
-ALPHA = 0.05  # Significance level for tests
+MAX_LAG_S = 20  # Maximum lag for the source variable
+MAX_LAG_T = 20  # Maximum lag for the target variable
+N_PERM = 30     # Number of permutations for significance testing
+ALPHA = 0.05    # Significance level for tests
 
 # MTE settings dictionary
 SETTINGS = {
@@ -36,10 +36,10 @@ SETTINGS = {
     'max_lag_target': MAX_LAG_T,            # Maximum history of the target process to consider
     
     # Alpha levels for various significance tests in the MTE algorithm
-    'alpha_sig_te': ALPHA,                  # Significance level for the TE value of a selected source
-    'alpha_relu_source': ALPHA,             # Significance level for a source to be selected in the greedy search
-    'alpha_max_prediction': ALPHA,          # Significance level for prediction improvement when adding a source
-    'alpha_min_prediction': ALPHA,          # Significance level for the omnibus prediction (overall model fit)
+    # 'alpha_sig_te': ALPHA,                  # Significance level for the TE value of a selected source
+    # 'alpha_relu_source': ALPHA,             # Significance level for a source to be selected in the greedy search
+    # 'alpha_max_prediction': ALPHA,          # Significance level for prediction improvement when adding a source
+    # 'alpha_min_prediction': ALPHA,          # Significance level for the omnibus prediction (overall model fit)
     
     'fdr_correction': False,                # Whether to apply False Discovery Rate correction to p-values
 
@@ -97,7 +97,7 @@ def multivar_te(target_idx, all_modes, settings_dict):
     data_idt = Data(all_modes, dim_order='sp', normalise=False)
     
     # TE settings
-    settings = settings_dict.copy()
+    settings = settings_dict
     
     # TE computation
     try:
@@ -108,16 +108,32 @@ def multivar_te(target_idx, all_modes, settings_dict):
             data=data_idt,
             targets=[target_idx]
         )
-        
-        # Get the TE result for the target (index target_idx)
-        target_results = results_mte.get_selected_sources().get(target_idx, {})
-        sources = target_results.get('sources', {})
-        
-        mte_values = {}
-        for src_idx, info in sources.items():
-            mte_values[src_idx] = info['te'] # Conditional TE
 
-        return mte_values
+        num_processes = all_modes.shape[1]  # Number of processes (modes)
+        source_te_map = {src_idx_map: 0.0 for src_idx_map in range(num_processes)}
+        
+        # Get FDR correction boolean
+        use_fdr = settings.get('fdr_correction', False)
+        
+        single_target_results = results_mte.get_single_target(target=target_idx, fdr=use_fdr)
+
+        selected_vars = single_target_results.get('selected_vars_sources')
+        selected_te_values = single_target_results.get('selected_sources_te')
+
+        for i in range(len(selected_vars)):
+            source_process_index = selected_vars[i][0] # This is the actual index of the source process
+            te_val = selected_te_values[i]
+
+            # If multiple lags from the same source are selected,
+            # store the maximum TE contribution from that source process.
+            if 0 <= source_process_index < num_processes:
+                source_te_map[source_process_index] = max(source_te_map[source_process_index], te_val)
+            else:
+                # This case should ideally not happen if indices are consistent
+                print(f"Worker Warning (target {target_idx}): Encountered an out-of-bounds "
+                        f"source_process_index {source_process_index} from IDTxl results.")
+
+        return source_te_map
     
     except Exception as e:
         print(f"Worker Error (target {target_idx}): MTE computation failed: {e}")
@@ -281,13 +297,13 @@ def mte_study_parallel():
             else:
                 corr_matrix[i, j] = np.corrcoef(mp_tmcoeff[:, i], mp_tmcoeff[:, j])[0, 1]
     
-    corr_matrix_filename = "mte_pearson_correlation_matrix.csv"
+    corr_matrix_filename = "mte_pearson_corr_" + str(NUM_POD) + ".csv"
     np.savetxt(corr_matrix_filename, corr_matrix, delimiter=",")
     logger.info(f"Full Pearson correlation matrix saved to {corr_matrix_filename}")
     logger.info(f"Correlation Matrix sample (first 3x3 or less):\n{corr_matrix[:3,:3]}")
         
     # Save and log the MTE results
-    mte_matrix_filename = "multivariate_te_matrix.csv"
+    mte_matrix_filename = "mte_" + str(NUM_POD) + ".csv"
     np.savetxt(mte_matrix_filename, mte_matrix, delimiter=",")
     logger.info(f"Multivariate TE matrix saved to {mte_matrix_filename}")
     logger.info(f"MTE Matrix (Target x Source) sample (first 3x3 or less):\n{mte_matrix[:3,:3]}")

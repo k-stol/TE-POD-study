@@ -18,13 +18,13 @@ DATA_DIR = "./data/"
 # Mode 0 is the mean, so we should not include it in the analysis.
 # For this script, we assume 1-indexed modes from tmcoeff 
 # (as in, tmcoeff[:, 0] is the mean mode, so we start from 1).
-NUM_POD = 20
+NUM_POD = 4
 
 # TE parameters
 MIN_LAG_S = 1   # Minimum lag for the source variable
-MAX_LAG_S = 50  # Maximum lag for the source variable
-MAX_LAG_T = 50  # Maximum lag for the target variable
-N_PERM = 100    # Number of permutations for significance testing
+MAX_LAG_S = 20  # Maximum lag for the source variable
+MAX_LAG_T = 20  # Maximum lag for the target variable
+N_PERM = 30     # Number of permutations for significance testing
 ALPHA = 0.05    # Significance level for tests
 
 # TE settings dictionary
@@ -40,10 +40,10 @@ SETTINGS = {
     'n_perm_max_seq': N_PERM,           # Permutations for max_seq part of analysis
     'n_perm_omnibus': N_PERM,           # Permutations for omnibus significance test
 
-    'alpha_max_stat': ALPHA,            # Significance level for max_stat test
-    'alpha_min_stat': ALPHA,            # Significance level for min_stat test
-    'alpha_max_seq': ALPHA,             # Significance level for max_seq test
-    'alpha_omnibus': ALPHA,             # Significance level for omnibus test
+    # 'alpha_max_stat': ALPHA,            # Significance level for max_stat test
+    # 'alpha_min_stat': ALPHA,            # Significance level for min_stat test
+    # 'alpha_max_seq': ALPHA,             # Significance level for max_seq test
+    # 'alpha_omnibus': ALPHA,             # Significance level for omnibus test
 
     'fdr_correction': False,            # Set to True to apply FDR correction
 
@@ -115,13 +115,13 @@ def bivar_te(source, target, settings_dict):
             settings=settings,
             data=data_idt,
             target=1,
-            sources=[0]
+            sources=0
         )
         
         # Get the TE result for the target (index 1)
         # fdr=False means we are not applying False Discovery Rate correction here
         # to filter results based on p-values. We get the raw calculation.
-        single_process_obj = results_bte.get_single_target(target_id=1, fdr=False)
+        single_process_obj = results_bte.get_single_target(1, fdr=False)
         
         if single_process_obj is not None and hasattr(single_process_obj, 'omnibus_te'):
             te_value = single_process_obj.omnibus_te
@@ -138,8 +138,8 @@ def bivar_te(source, target, settings_dict):
     #     return np.nan, corr
     
     except Exception as e:
-        # print(f"Worker Error (target {}): MTE computation failed: {e}")
-        print(f"Worker Error (target {target}): MTE computation failed: {e}")
+        # print(f"Worker Error (target {}): BTE computation failed: {e}")
+        print(f"Worker Error (target {target}): BTE computation failed: {e}")
         return np.nan, corr
     
 # Worker function for parallel processing
@@ -298,8 +298,8 @@ def te_study_parallel():
         corr_matrix[res_target_idx, res_source_idx] = corr_val
         
     # Save and log the results
-    te_matrix_filename = "bivariate_te_matrix.csv"
-    corr_matrix_filename = "bte_pearson_correlation_matrix.csv"
+    te_matrix_filename = "bte_" + str(NUM_POD) + ".csv"
+    corr_matrix_filename = "bte_pearson_corr_" + str(NUM_POD) + ".csv"
     np.savetxt(te_matrix_filename, te_matrix_bivar, delimiter=",")
     logger.info(f"Bivariate TE matrix saved to {te_matrix_filename}")
     np.savetxt(corr_matrix_filename, corr_matrix, delimiter=",")
