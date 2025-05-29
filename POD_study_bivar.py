@@ -210,8 +210,10 @@ def te_study_parallel():
 
     logger.info(f"Found {num_modes} POD modes, using {actual_modes} modes for analysis.")
     
-    tmcoeff_pairs = tmcoeff_full[:, 1:((actual_modes+1)*2)] # We exclude the mean mode (mode 0) here
-    tmcoeff_slice = tmcoeff_pairs[:, 0::2]                  # Exclude pairs (e.g., only even indices)
+    # tmcoeff_pairs = tmcoeff_full[:, 1:((actual_modes+1)*2)] # We exclude the mean mode (mode 0) here
+    # tmcoeff_slice = tmcoeff_pairs[:, 0::2]                  # Exclude pairs (e.g., only even indices)
+    
+    tmcoeff_slice = tmcoeff_full[:, 1:(actual_modes+1)] # Exclude the mean mode (mode 0)
     
     # Normalize the data
     mean_vals = np.mean(tmcoeff_slice, axis=0)
