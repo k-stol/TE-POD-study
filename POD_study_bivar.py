@@ -22,8 +22,8 @@ NUM_POD = 4
 
 # TE parameters
 MIN_LAG_S = 1   # Minimum lag for the source variable
-MAX_LAG_S = 20  # Maximum lag for the source variable
-MAX_LAG_T = 20  # Maximum lag for the target variable
+MAX_LAG_S = 20   # Maximum lag for the source variable
+MAX_LAG_T = 20   # Maximum lag for the target variable
 N_PERM = 30     # Number of permutations for significance testing
 ALPHA = 0.05    # Significance level for tests
 
@@ -201,7 +201,7 @@ def te_study_parallel():
         logger.exception(f"Error loading .mat file: {e}")
         return None, None, 0
     
-    num_modes = tmcoeff_full.shape[1]
+    num_modes = tmcoeff_full.shape[1] / 2
     actual_modes = min(num_modes, NUM_POD)
     
     if actual_modes < 2:
@@ -210,7 +210,8 @@ def te_study_parallel():
 
     logger.info(f"Found {num_modes} POD modes, using {actual_modes} modes for analysis.")
     
-    tmcoeff_slice = tmcoeff_full[:, 1:actual_modes+1] # We exclude the mean mode (mode 0) here
+    tmcoeff_pairs = tmcoeff_full[:, 1:((actual_modes+1)*2)] # We exclude the mean mode (mode 0) here
+    tmcoeff_slice = tmcoeff_pairs[:, 0::2]                  # Exclude pairs (e.g., only even indices)
     
     # Normalize the data
     mean_vals = np.mean(tmcoeff_slice, axis=0)

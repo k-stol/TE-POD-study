@@ -195,7 +195,7 @@ def mte_study_parallel():
         logger.exception(f"Error loading .mat file: {e}")
         return None, None, 0
     
-    num_modes = tmcoeff_full.shape[1]
+    num_modes = tmcoeff_full.shape[1] / 2
     actual_modes = min(num_modes-1, NUM_POD)    # Exclude the mean mode (mode 0)
     
     if actual_modes < 2:
@@ -204,7 +204,8 @@ def mte_study_parallel():
 
     logger.info(f"Found {num_modes} POD modes, using {actual_modes} modes for analysis.")
 
-    tmcoeff_slice = tmcoeff_full[:, 1 : 1 + actual_modes]   # We exclude the mean mode (mode 0) here
+    tmcoeff_pairs = tmcoeff_full[:, 1:((actual_modes+1)*2)] # We exclude the mean mode (mode 0) here
+    tmcoeff_slice = tmcoeff_pairs[:, 0::2]                  # Exclude pairs (e.g., only even indices)
     
     # Normalize the data
     mean_vals = np.mean(tmcoeff_slice, axis=0)

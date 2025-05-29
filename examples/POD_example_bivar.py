@@ -58,10 +58,10 @@ def test(a,b,tausMIN,tausMAX,tautMAX):
     # (4) estimate TE
     settings = {
         'cmi_estimator': 'JidtKraskovCMI',
-        'n_perm_max_stat': 100,
-        'n_perm_min_stat': 100,
-        'n_perm_max_seq': 100,
-        'n_perm_omnibus': 100,
+        'n_perm_max_stat': 21,
+        'n_perm_min_stat': 21,
+        'n_perm_max_seq': 21,
+        'n_perm_omnibus': 21,
         'max_lag_sources': tausMAX, #int(taus+5),
         'min_lag_sources': tausMIN, #int(taus),
         'max_lag_target':  tautMAX,
@@ -80,20 +80,20 @@ if __name__ == "__main__":
 
     #-------- SETTINGS ----------------
     #Directory with the data 
-    dataDir ="TEST_CASE/"
+    dataDir ="data/"
 
 
     # POD-mode 0 is the mean
     # POD-mode source
-    mode_s = 1
+    mode_s = 2
     # POD-mode target
-    mode_t = 4
+    mode_t = 1
     
     min_lag_source = 1
     
-    max_lag_target = 20 
+    max_lag_target = 2 
     
-    max_lag_source = 20 #[1,2,4,6,8,10,15,20] 
+    max_lag_source = 2 
     #----------------------------------
     
     mat1 = scipy.io.loadmat(dataDir+'A2coef.mat')
